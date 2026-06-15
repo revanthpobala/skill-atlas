@@ -39,22 +39,28 @@ async function _runAI(provider: string, store: any, prompt: string, onChunk: (te
     // Clean up base URL to prevent double slashes
     const baseUrl = store.openaiBaseUrl.replace(/\/+$/, '');
     
-    const response = await fetch(`${baseUrl}/chat/completions`, {
+    const response = await fetch('/api/proxy', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${store.openaiKey}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: store.openaiModel,
-        messages: [{ role: 'user', content: prompt }],
-        stream: true
+        url: `${baseUrl}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${store.openaiKey}`
+        },
+        body: {
+          model: store.openaiModel,
+          messages: [{ role: 'user', content: prompt }],
+          stream: true
+        }
       })
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`OpenAI API Error (${response.status}): ${errText}`);
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(`Proxy Error (${response.status}): ${errData.message || response.statusText}`);
     }
 
     const reader = response.body?.getReader();
@@ -84,25 +90,30 @@ async function _runAI(provider: string, store: any, prompt: string, onChunk: (te
 
     const baseUrl = store.anthropicBaseUrl.replace(/\/+$/, '');
 
-    const response = await fetch(`${baseUrl}/v1/messages`, {
+    const response = await fetch('/api/proxy', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': store.anthropicKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerously-allow-browser': 'true'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: store.anthropicModel,
-        max_tokens: 4000,
-        messages: [{ role: 'user', content: prompt }],
-        stream: true
+        url: `${baseUrl}/v1/messages`,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': store.anthropicKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: {
+          model: store.anthropicModel,
+          max_tokens: 4000,
+          messages: [{ role: 'user', content: prompt }],
+          stream: true
+        }
       })
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Anthropic API Error (${response.status}): ${errText}`);
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(`Proxy Error (${response.status}): ${errData.message || response.statusText}`);
     }
 
     const reader = response.body?.getReader();
