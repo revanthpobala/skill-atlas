@@ -82,7 +82,7 @@ By treating your agent's instructions as a compiled dependency tree, Skill Atlas
   <br/>
   <img src="public/showcase-8.png" alt="AI Copilot Chat" width="800" />
   <br/>
-  <i>Leverage your configured LLM API keys to chat directly with a dedicated AI Copilot. The AI streams natural language analysis and proposes safe refactorings within markdown blocks. A one-click "Apply to Editor" button allows you to instantly merge the AI's code without corrupting your files with raw syntax. **Privacy First:** Your API keys (OpenAI, Anthropic, Gemini) are stored securely in your browser's local storage and all API requests are made directly from your browser—no backend proxies or telemtry servers involved.</i>
+  <i>Leverage your configured LLM API keys to chat directly with a dedicated AI Copilot. The AI streams natural language analysis and proposes safe refactorings within markdown blocks. A one-click "Apply to Editor" button allows you to instantly merge the AI's code without corrupting your files with raw syntax. **Bring Your Own Key (BYOK):** Your API keys (OpenAI, Anthropic, Gemini) are stored securely in your browser's local storage. There is no database, no backend server, and no telemetry—everything is done entirely on your browser for ultimate privacy.</i>
 </details>
 
 ## Anthropic Skill Validation Rules
