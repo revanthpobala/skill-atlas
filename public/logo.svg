@@ -1,0 +1,55 @@
+<svg 
+  width="240" 
+  height="240" 
+  viewBox="0 0 24 24" 
+  fill="none" 
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- Outer bounding hexagon -->
+  <path 
+    d="M12 2L22 7.5V16.5L12 22L2 16.5V7.5L12 2Z" 
+    stroke="#58a6ff" 
+    stroke-width="1.5" 
+    stroke-linecap="round" 
+    stroke-linejoin="round" 
+    fill="rgba(88, 166, 255, 0.05)"
+  />
+  <!-- Internal Atlas 'A' structure -->
+  <path 
+    d="M12 6L7 16" 
+    stroke="#58a6ff" 
+    stroke-width="1.5" 
+    stroke-linecap="round" 
+    stroke-linejoin="round" 
+  />
+  <path 
+    d="M12 6L17 16" 
+    stroke="#58a6ff" 
+    stroke-width="1.5" 
+    stroke-linecap="round" 
+    stroke-linejoin="round" 
+  />
+  <path 
+    d="M8.5 13H15.5" 
+    stroke="#58a6ff" 
+    stroke-width="1.5" 
+    stroke-linecap="round" 
+    stroke-linejoin="round" 
+  />
+  
+  <!-- Node points at intersections -->
+  <circle cx="12" cy="6" r="2" fill="#58a6ff" />
+  <circle cx="7" cy="16" r="1.5" fill="#58a6ff" />
+  <circle cx="17" cy="16" r="1.5" fill="#58a6ff" />
+  
+  <!-- Central node mapping -->
+  <circle cx="12" cy="13" r="1.5" fill="#58a6ff" />
+  <path 
+    d="M12 13V22" 
+    stroke="#58a6ff" 
+    stroke-width="1.5" 
+    stroke-linecap="round" 
+    stroke-linejoin="round" 
+    stroke-dasharray="2 2"
+  />
+</svg>
