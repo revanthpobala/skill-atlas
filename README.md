@@ -97,22 +97,22 @@ The engine actively flags violations across the graph:
 ### 1. Visual Node Graph
 Built with React Flow, it instantly maps out your entire skill repository and its dependencies, giving you a top-down view of all agent instructions.
 
-https://github.com/revanthpobala/skill-atlas/raw/main/public/feature-graph.mp4
+<video src="https://github.com/revanthpobala/skill-atlas/raw/main/public/feature-graph.mp4" controls="controls" muted="muted" style="max-width: 100%;"></video>
 
 ### 2. Real-time Diagnostics
 Validates skills against strict rules (e.g., no cycles, orphans, missing frontmatter) and flags them with contextual explanations to maintain repository health.
 
-https://github.com/revanthpobala/skill-atlas/raw/main/public/feature-diagnostics.mp4
+<video src="https://github.com/revanthpobala/skill-atlas/raw/main/public/feature-diagnostics.mp4" controls="controls" muted="muted" style="max-width: 100%;"></video>
 
 ### 3. Integrated IDE & Notebook Renderer
 A split-pane Monaco Editor allows you to directly edit Markdown and Code files within the browser with real-time updates to the graph. It also features native **Jupyter Notebook (.ipynb)** parsing, rendering Markdown blocks and Code cells seamlessly within the app.
 
-https://github.com/revanthpobala/skill-atlas/raw/main/public/feature-ide.mp4
+<video src="https://github.com/revanthpobala/skill-atlas/raw/main/public/feature-ide.mp4" controls="controls" muted="muted" style="max-width: 100%;"></video>
 
 ### 4. GitHub Integration & PRs
 Fetches skills directly from remote GitHub repositories and pushes modifications securely back as Pull Requests using GitHub OAuth.
 
-https://github.com/revanthpobala/skill-atlas/raw/main/public/feature-github.mp4
+<video src="https://github.com/revanthpobala/skill-atlas/raw/main/public/feature-github.mp4" controls="controls" muted="muted" style="max-width: 100%;"></video>
 
 ## Local Development
 
