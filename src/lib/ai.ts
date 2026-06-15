@@ -38,29 +38,32 @@ async function _runAI(provider: string, store: any, prompt: string, onChunk: (te
     
     // Clean up base URL to prevent double slashes
     const baseUrl = store.openaiBaseUrl.replace(/\/+$/, '');
+    const targetUrl = `${baseUrl}/chat/completions`;
     
-    const response = await fetch('/api/proxy', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        url: `${baseUrl}/chat/completions`,
+    let response;
+    try {
+      response = await fetch(targetUrl, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${store.openaiKey}`
         },
-        body: {
+        body: JSON.stringify({
           model: store.openaiModel,
           messages: [{ role: 'user', content: prompt }],
           stream: true
-        }
-      })
-    });
+        })
+      });
+    } catch (e: any) {
+      if (e.message === 'Failed to fetch' || e.message.includes('NetworkError')) {
+        throw new Error(`CORS Error: The browser blocked the request to ${targetUrl}. Because your Enterprise LiteLLM is hosted internally or behind a VPN, our cloud proxy cannot reach it. You MUST configure your Enterprise LiteLLM to allow Cross-Origin Requests (CORS) from 'https://atlas-skills.netlify.app', OR install a 'CORS Unblock' browser extension to use the AI features.`);
+      }
+      throw e;
+    }
 
     if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(`Proxy Error (${response.status}): ${errData.message || response.statusText}`);
+      const errText = await response.text();
+      throw new Error(`OpenAI API Error (${response.status}): ${errText}`);
     }
 
     const reader = response.body?.getReader();
@@ -89,31 +92,35 @@ async function _runAI(provider: string, store: any, prompt: string, onChunk: (te
     if (!store.anthropicKey) throw new Error('Anthropic API Key is missing. Please configure it in settings.');
 
     const baseUrl = store.anthropicBaseUrl.replace(/\/+$/, '');
+    const targetUrl = `${baseUrl}/v1/messages`;
 
-    const response = await fetch('/api/proxy', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        url: `${baseUrl}/v1/messages`,
+    let response;
+    try {
+      response = await fetch(targetUrl, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': store.anthropicKey,
-          'anthropic-version': '2023-06-01'
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerously-allow-browser': 'true'
         },
-        body: {
+        body: JSON.stringify({
           model: store.anthropicModel,
           max_tokens: 4000,
           messages: [{ role: 'user', content: prompt }],
           stream: true
-        }
-      })
-    });
+        })
+      });
+    } catch (e: any) {
+      if (e.message === 'Failed to fetch' || e.message.includes('NetworkError')) {
+        throw new Error(`CORS Error: The browser blocked the request to ${targetUrl}. Because your Enterprise LiteLLM is hosted internally or behind a VPN, our cloud proxy cannot reach it. You MUST configure your Enterprise LiteLLM to allow Cross-Origin Requests (CORS) from 'https://atlas-skills.netlify.app', OR install a 'CORS Unblock' browser extension to use the AI features.`);
+      }
+      throw e;
+    }
 
     if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(`Proxy Error (${response.status}): ${errData.message || response.statusText}`);
+      const errText = await response.text();
+      throw new Error(`Anthropic API Error (${response.status}): ${errText}`);
     }
 
     const reader = response.body?.getReader();
