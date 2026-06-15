@@ -7,6 +7,7 @@ import { FolderUp, GitBranch, Activity, Layers, Code2, Loader2, GitPullRequest, 
 import { fetchGithubRepo } from '@/lib/github';
 import PRModal from './PRModal';
 import SkillAtlasLogo from './Logo';
+import { useSession, signIn, signOut } from 'next-auth/react';
 
 export default function Sidebar() {
   const loadFiles = useGraphStore(state => state.loadFiles);
@@ -74,19 +75,27 @@ export default function Sidebar() {
     }
   };
 
+  const { data: session } = useSession();
+
   const handleGithubLoad = async () => {
     if (!githubUrl) return;
     setIsLoadingGit(true);
     setError('');
     try {
-      const files = await fetchGithubRepo(githubUrl);
+      // @ts-ignore - session.accessToken is injected via callbacks
+      const token = session?.accessToken as string | undefined;
+      const files = await fetchGithubRepo(githubUrl, token);
       if (files.length === 0) {
         setError('No markdown files found in the repository.');
       } else {
         loadFiles(files);
       }
     } catch (e: any) {
-      setError(e.message || 'Failed to load repository.');
+      if (e.message.includes('please sign in first')) {
+        setError(e.message);
+      } else {
+        setError(e.message || 'Failed to load repository.');
+      }
     } finally {
       setIsLoadingGit(false);
     }
@@ -162,8 +171,16 @@ export default function Sidebar() {
           </div>
 
           {error && (
-            <div style={{ color: 'var(--accent-danger)', fontSize: '0.8rem', padding: '8px', backgroundColor: 'rgba(218, 54, 51, 0.1)', borderRadius: '6px', border: '1px solid var(--accent-danger)', marginTop: '8px' }}>
-              {error}
+            <div style={{ color: 'var(--accent-danger)', fontSize: '0.8rem', padding: '8px', backgroundColor: 'rgba(218, 54, 51, 0.1)', borderRadius: '6px', border: '1px solid var(--accent-danger)', marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div>{error}</div>
+              {error.includes('sign in') && !session && (
+                <button 
+                  onClick={() => signIn('github')}
+                  style={{ ...btnStyle, justifyContent: 'center', backgroundColor: '#238636', color: '#fff', border: 'none', padding: '6px' }}
+                >
+                  Sign In with GitHub
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -1,6 +1,6 @@
 import { FileData } from './parser';
 
-export async function fetchGithubRepo(url: string): Promise<FileData[]> {
+export async function fetchGithubRepo(url: string, token?: string): Promise<FileData[]> {
   try {
     // Basic regex to extract owner and repo from various github URL formats
     const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
@@ -9,10 +9,20 @@ export async function fetchGithubRepo(url: string): Promise<FileData[]> {
     const [, owner, repo] = match;
     const cleanRepo = repo.replace('.git', '');
 
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     // 1. Fetch the tree
     const treeUrl = `https://api.github.com/repos/${owner}/${cleanRepo}/git/trees/main?recursive=1`;
-    const response = await fetch(treeUrl);
-    if (!response.ok) throw new Error(`Failed to fetch repo tree: ${response.statusText}`);
+    const response = await fetch(treeUrl, { headers });
+    if (!response.ok) {
+      if (response.status === 404 && !token) {
+        throw new Error('Repository not found. If this is a private repository, please sign in first.');
+      }
+      throw new Error(`Failed to fetch repo tree: ${response.statusText}`);
+    }
     
     const treeData = await response.json();
     if (!treeData.tree) throw new Error('No tree data found');
@@ -28,7 +38,7 @@ export async function fetchGithubRepo(url: string): Promise<FileData[]> {
           
           if (!isBinary) {
             const rawUrl = `https://raw.githubusercontent.com/${owner}/${cleanRepo}/main/${file.path}`;
-            const contentResponse = await fetch(rawUrl);
+            const contentResponse = await fetch(rawUrl, { headers });
             if (!contentResponse.ok) return { path: file.path, content: 'Failed to fetch content.' };
             const content = await contentResponse.text();
             return { path: file.path, content };
