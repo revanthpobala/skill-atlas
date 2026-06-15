@@ -12,6 +12,7 @@ import AISettingsModal from './AISettingsModal';
 import AboutModal from './AboutModal';
 import HelpModal from './HelpModal';
 import SkillAtlasLogo from './Logo';
+import AIAnalysisModal from './AIAnalysisModal';
 import { fetchAISuggestions } from '@/lib/ai';
 import { useSession, signIn, signOut } from 'next-auth/react';
 
@@ -44,6 +45,7 @@ export default function Sidebar() {
   const [isValidOpen, setIsValidOpen] = useState(false);
   const [isFocusModalOpen, setIsFocusModalOpen] = useState(false);
   const [isAISettingsOpen, setIsAISettingsOpen] = useState(false);
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
@@ -76,13 +78,12 @@ export default function Sidebar() {
   }, [selectedNodeId]);
 
   const handleAIAnalyze = async () => {
-    if (!selectedNodeId) return;
     const node = nodes.find(n => n.id === selectedNodeId);
-    if (!node || !node.data.content) return;
-
+    if (!node || aiLoading) return;
+    setIsAIModalOpen(true);
     setAiLoading(true);
-    setAiSuggestion('');
     setAiError('');
+    setAiSuggestion('');
 
     try {
       await fetchAISuggestions(node.data.content as string, (chunk) => {
@@ -506,6 +507,16 @@ export default function Sidebar() {
                       selectedNodeId={selectedNodeId}
                     />
                   )}
+                  {isAIModalOpen && node && (
+                    <AIAnalysisModal
+                      isOpen={isAIModalOpen}
+                      onClose={() => setIsAIModalOpen(false)}
+                      skillName={node.data.label as string}
+                      aiSuggestion={aiSuggestion}
+                      aiLoading={aiLoading}
+                      aiError={aiError}
+                    />
+                  )}
                   <button 
                     onClick={() => setIsFocusModalOpen(true)}
                     style={{
@@ -554,24 +565,6 @@ export default function Sidebar() {
                       {aiLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                       {aiLoading ? 'Analyzing Skill...' : 'Analyze Skill with AI'}
                     </button>
-                    
-                    {aiError && (
-                      <div style={{ marginTop: '8px', padding: '8px', background: 'rgba(248, 81, 73, 0.1)', color: '#ff7b72', borderRadius: '6px', fontSize: '0.75rem', border: '1px solid rgba(248, 81, 73, 0.2)', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                        <AlertCircle size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
-                        <div style={{ lineHeight: '1.4' }}>{aiError}</div>
-                      </div>
-                    )}
-
-                    {aiSuggestion && (
-                      <div style={{ marginTop: '12px', background: '#161b22', border: '1px solid #30363d', borderRadius: '6px', padding: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#58a6ff', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Sparkles size={14} /> AI Suggestions
-                        </div>
-                        <div style={{ fontSize: '0.8rem', color: '#c9d1d9', lineHeight: '1.5', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-geist-mono), monospace' }}>
-                          {aiSuggestion}
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {/* Meta Information / Metrics */}
