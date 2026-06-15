@@ -4,7 +4,6 @@ import { useGraphStore } from '@/store/graphStore';
 import Editor from '@monaco-editor/react';
 import { FileCode, X, BookOpen, Edit3, RotateCcw, Sparkles, Loader2, Send } from 'lucide-react';
 import { useState } from 'react';
-import { fetchAIEdit } from '@/lib/ai';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { visit } from 'unist-util-visit';
@@ -65,10 +64,6 @@ export default function EditorPanel() {
   const setSelectedAsset = useGraphStore(state => state.setSelectedAsset);
   
   const [mode, setMode] = useState<'view' | 'edit'>('view');
-  
-  const [aiInstruction, setAiInstruction] = useState('');
-  const [isAiEditing, setIsAiEditing] = useState(false);
-  const [aiEditError, setAiEditError] = useState('');
 
   const selectedNode = nodes.find(n => n.id === selectedNodeId);
 
@@ -271,70 +266,6 @@ export default function EditorPanel() {
           </div>
         ) : (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-            {mode === 'edit' && !selectedAsset && (
-              <div style={{ 
-                padding: '12px 16px', 
-                borderBottom: '1px solid #30363d', 
-                background: '#161b22', 
-                display: 'flex', 
-                gap: '8px',
-                alignItems: 'center' 
-              }}>
-                <Sparkles size={16} color="#58a6ff" />
-                <input 
-                  type="text" 
-                  value={aiInstruction}
-                  onChange={e => setAiInstruction(e.target.value)}
-                  placeholder="Ask AI to edit this code (e.g. 'refactor this to use async/await')"
-                  disabled={isAiEditing}
-                  onKeyDown={async (e) => {
-                    if (e.key === 'Enter' && aiInstruction.trim() && !isAiEditing) {
-                      setIsAiEditing(true);
-                      setAiEditError('');
-                      const currentContent = content;
-                      updateNodeContent(selectedNode.id, ''); // clear content to stream new one
-                      
-                      try {
-                        let newContent = '';
-                        await fetchAIEdit(currentContent, aiInstruction, (chunk) => {
-                          newContent += chunk;
-                          updateNodeContent(selectedNode.id, newContent);
-                        });
-                        setAiInstruction('');
-                      } catch (err: any) {
-                        setAiEditError(err.message || 'Failed to edit with AI');
-                        updateNodeContent(selectedNode.id, currentContent); // restore on error
-                      } finally {
-                        setIsAiEditing(false);
-                      }
-                    }
-                  }}
-                  style={{
-                    flex: 1,
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid #30363d',
-                    color: '#c9d1d9',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    fontSize: '0.85rem',
-                    outline: 'none',
-                    fontFamily: 'var(--font-sans)'
-                  }}
-                />
-                {isAiEditing ? (
-                  <Loader2 size={16} className="animate-spin" color="#8b949e" />
-                ) : (
-                  <Send size={16} color={aiInstruction.trim() ? '#58a6ff' : '#8b949e'} />
-                )}
-              </div>
-            )}
-            
-            {aiEditError && (
-              <div style={{ padding: '8px 16px', background: 'rgba(248, 81, 73, 0.1)', color: '#ff7b72', fontSize: '0.8rem', borderBottom: '1px solid rgba(248, 81, 73, 0.2)' }}>
-                {aiEditError}
-              </div>
-            )}
-            
             <div style={{ flex: 1, position: 'relative' }}>
               <Editor
                 height="100%"

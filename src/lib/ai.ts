@@ -9,7 +9,7 @@ export async function fetchAISuggestions(
 
   const prompt = `Analyze this agentic skill code. Briefly describe what it does, highlight any potential infinite loop or atomicity issues, and propose a clean, specific refactoring if needed. Keep your response concise, using markdown for formatting and code blocks.\n\n\`\`\`\n${content}\n\`\`\``;
 
-  return _runAI(provider, store, prompt, onChunk);
+  return _runAI(provider, store, [{ role: 'user', content: prompt }], onChunk);
 }
 
 export async function fetchAIEdit(
@@ -29,10 +29,20 @@ ${instruction}
 Original Code:
 ${content}`;
 
-  return _runAI(provider, store, prompt, onChunk);
+  return _runAI(provider, store, [{ role: 'user', content: prompt }], onChunk);
 }
 
-async function _runAI(provider: string, store: any, prompt: string, onChunk: (text: string) => void) {
+export async function fetchAIChat(
+  messages: { role: string, content: string }[],
+  onChunk: (text: string) => void
+): Promise<void> {
+  const store = useSettingsStore.getState();
+  const provider = store.aiProvider;
+
+  return _runAI(provider, store, messages, onChunk);
+}
+
+async function _runAI(provider: string, store: any, messages: any[], onChunk: (text: string) => void) {
   if (provider === 'openai') {
     if (!store.openaiKey) throw new Error('OpenAI API Key is missing. Please configure it in settings.');
     
@@ -50,7 +60,7 @@ async function _runAI(provider: string, store: any, prompt: string, onChunk: (te
         },
         body: JSON.stringify({
           model: store.openaiModel,
-          messages: [{ role: 'user', content: prompt }],
+          messages: messages,
           stream: true
         })
       });
@@ -107,7 +117,7 @@ async function _runAI(provider: string, store: any, prompt: string, onChunk: (te
         body: JSON.stringify({
           model: store.anthropicModel,
           max_tokens: 4000,
-          messages: [{ role: 'user', content: prompt }],
+          messages: messages,
           stream: true
         })
       });

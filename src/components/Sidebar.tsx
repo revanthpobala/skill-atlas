@@ -49,10 +49,6 @@ export default function Sidebar() {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiSuggestion, setAiSuggestion] = useState('');
-  const [aiError, setAiError] = useState('');
-
   const [fetchStatus, setFetchStatus] = useState('Connecting to GitHub API...');
   const [fetchProgress, setFetchProgress] = useState(0);
 
@@ -73,27 +69,12 @@ export default function Sidebar() {
   }, [isLoadingGit]);
 
   useEffect(() => {
-    setAiSuggestion('');
-    setAiError('');
   }, [selectedNodeId]);
 
   const handleAIAnalyze = async () => {
     const node = nodes.find(n => n.id === selectedNodeId);
-    if (!node || aiLoading) return;
+    if (!node || !node.data.content) return;
     setIsAIModalOpen(true);
-    setAiLoading(true);
-    setAiError('');
-    setAiSuggestion('');
-
-    try {
-      await fetchAISuggestions(node.data.content as string, (chunk) => {
-        setAiSuggestion(prev => prev + chunk);
-      });
-    } catch (e: any) {
-      setAiError(e.message || 'An error occurred during AI analysis.');
-    } finally {
-      setAiLoading(false);
-    }
   };
 
   const stagedCount = Object.keys(stagedChanges).length;
@@ -512,9 +493,8 @@ export default function Sidebar() {
                       isOpen={isAIModalOpen}
                       onClose={() => setIsAIModalOpen(false)}
                       skillName={node.data.label as string}
-                      aiSuggestion={aiSuggestion}
-                      aiLoading={aiLoading}
-                      aiError={aiError}
+                      nodeId={node.id}
+                      nodeContent={node.data.content as string}
                     />
                   )}
                   <button 
@@ -542,7 +522,6 @@ export default function Sidebar() {
                   <div style={{ marginTop: '8px' }}>
                     <button 
                       onClick={handleAIAnalyze}
-                      disabled={aiLoading}
                       style={{
                         width: '100%',
                         display: 'flex',
@@ -554,16 +533,15 @@ export default function Sidebar() {
                         border: 'none',
                         padding: '10px 12px',
                         borderRadius: '6px',
-                        cursor: aiLoading ? 'not-allowed' : 'pointer',
+                        cursor: 'pointer',
                         fontSize: '0.85rem',
                         fontWeight: 600,
-                        opacity: aiLoading ? 0.7 : 1,
                         transition: 'opacity 0.2s',
                         boxShadow: '0 4px 12px rgba(35, 134, 54, 0.3)'
                       }}
                     >
-                      {aiLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                      {aiLoading ? 'Analyzing Skill...' : 'Analyze Skill with AI'}
+                      <Sparkles size={16} />
+                      Analyze Skill with AI Copilot
                     </button>
                   </div>
 
