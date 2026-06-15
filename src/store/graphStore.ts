@@ -9,12 +9,14 @@ interface GraphState {
   selectedNodeId: string | null;
   selectedAssetPath: string | null;
   isEditorOpen: boolean;
+  isSidebarOpen: boolean;
   stagedChanges: Record<string, string>; // path -> content
   showOrphansOnly: boolean;
   loadFiles: (files: FileData[]) => void;
   setSelectedNode: (id: string | null) => void;
   setSelectedAsset: (path: string | null) => void;
   setIsEditorOpen: (isOpen: boolean) => void;
+  setIsSidebarOpen: (isOpen: boolean) => void;
   updateNodeContent: (id: string, newContent: string) => void;
   discardChanges: (path: string) => void;
   toggleShowOrphans: () => void;
@@ -92,6 +94,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   selectedNodeId: null,
   selectedAssetPath: null,
   isEditorOpen: false,
+  isSidebarOpen: true,
   stagedChanges: {},
   showOrphansOnly: false,
 
@@ -128,6 +131,10 @@ export const useGraphStore = create<GraphState>((set, get) => ({
 
   setIsEditorOpen: (isOpen: boolean) => {
     set({ isEditorOpen: isOpen });
+  },
+
+  setIsSidebarOpen: (isOpen: boolean) => {
+    set({ isSidebarOpen: isOpen });
   },
 
   updateNodeContent: (id: string, newContent: string) => {

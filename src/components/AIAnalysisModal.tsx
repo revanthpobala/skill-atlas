@@ -31,6 +31,7 @@ export default function AIAnalysisModal({
   const [error, setError] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasStartedRef = useRef(false);
   const updateNodeContent = useGraphStore(state => state.updateNodeContent);
 
   // Auto-scroll to bottom
@@ -40,7 +41,8 @@ export default function AIAnalysisModal({
 
   // Initial Analysis on mount
   useEffect(() => {
-    if (isOpen && messages.length === 0 && !loading) {
+    if (isOpen && messages.length === 0 && !loading && !hasStartedRef.current) {
+      hasStartedRef.current = true;
       runInitialAnalysis();
     }
   }, [isOpen]);
@@ -58,12 +60,17 @@ export default function AIAnalysisModal({
       await fetchAIChat([{ role: 'user', content: initialPrompt }], (chunk) => {
         setMessages(prev => {
           const newMessages = [...prev];
-          newMessages[newMessages.length - 1].content += chunk;
+          const lastIdx = newMessages.length - 1;
+          newMessages[lastIdx] = {
+            ...newMessages[lastIdx],
+            content: newMessages[lastIdx].content + chunk
+          };
           return newMessages;
         });
       });
     } catch (e: any) {
       setError(e.message || 'An error occurred during AI analysis.');
+      setMessages(prev => prev.slice(0, -1)); // Remove the empty assistant message
     } finally {
       setLoading(false);
     }
@@ -89,12 +96,17 @@ export default function AIAnalysisModal({
       await fetchAIChat(historyForAPI, (chunk) => {
         setMessages(prev => {
           const updated = [...prev];
-          updated[updated.length - 1].content += chunk;
+          const lastIdx = updated.length - 1;
+          updated[lastIdx] = {
+            ...updated[lastIdx],
+            content: updated[lastIdx].content + chunk
+          };
           return updated;
         });
       });
     } catch (e: any) {
       setError(e.message || 'An error occurred during AI request.');
+      setMessages(prev => prev.slice(0, -1)); // Remove the empty assistant message
     } finally {
       setLoading(false);
     }

@@ -80,15 +80,20 @@ async function _runAI(provider: string, store: any, messages: any[], onChunk: (t
     if (!reader) throw new Error('Response body is null');
     const decoder = new TextDecoder('utf-8');
 
+    let buffer = '';
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n');
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
       for (const line of lines) {
-        if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+        if (line.trim() === '') continue;
+        if (line.startsWith('data: ')) {
+          const dataStr = line.slice(6).trim();
+          if (dataStr === '[DONE]') continue;
           try {
-            const data = JSON.parse(line.slice(6));
+            const data = JSON.parse(dataStr);
             if (data.choices && data.choices[0].delta && data.choices[0].delta.content) {
               onChunk(data.choices[0].delta.content);
             }
@@ -137,17 +142,82 @@ async function _runAI(provider: string, store: any, messages: any[], onChunk: (t
     if (!reader) throw new Error('Response body is null');
     const decoder = new TextDecoder('utf-8');
 
+    let buffer = '';
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n');
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
       for (const line of lines) {
+        if (line.trim() === '') continue;
         if (line.startsWith('data: ')) {
+          const dataStr = line.slice(6).trim();
+          if (dataStr === '[DONE]') continue;
           try {
-            const data = JSON.parse(line.slice(6));
+            const data = JSON.parse(dataStr);
             if (data.type === 'content_block_delta' && data.delta && data.delta.text) {
               onChunk(data.delta.text);
+            }
+          } catch (e) {}
+        }
+      }
+    }
+  } else if (provider === 'gemini') {
+    if (!store.geminiKey) throw new Error('Gemini API Key is missing. Please configure it in settings.');
+
+    const baseUrl = store.geminiBaseUrl.replace(/\/+$/, '');
+    const targetUrl = `${baseUrl}/v1beta/models/${store.geminiModel}:streamGenerateContent?alt=sse`;
+
+    const geminiMessages = messages.map(m => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }]
+    }));
+
+    let response;
+    try {
+      response = await fetch(targetUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': store.geminiKey
+        },
+        body: JSON.stringify({
+          contents: geminiMessages
+        })
+      });
+    } catch (e: any) {
+      if (e.message === 'Failed to fetch' || e.message.includes('NetworkError')) {
+        throw new Error(`CORS Error: The browser blocked the request to ${targetUrl}.`);
+      }
+      throw e;
+    }
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Gemini API Error (${response.status}): ${errText}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('Response body is null');
+    const decoder = new TextDecoder('utf-8');
+
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (line.trim() === '') continue;
+        if (line.startsWith('data: ')) {
+          const dataStr = line.slice(6).trim();
+          if (dataStr === '[DONE]') continue;
+          try {
+            const data = JSON.parse(dataStr);
+            if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) {
+              onChunk(data.candidates[0].content.parts[0].text);
             }
           } catch (e) {}
         }

@@ -6,11 +6,14 @@ import EditorPanel from '@/components/EditorPanel';
 import CommandPalette from '@/components/CommandPalette';
 import { useGraphStore } from '@/store/graphStore';
 import { useState, useEffect } from 'react';
+import { PanelLeft } from 'lucide-react';
 
 export default function Home() {
   const selectedNodeId = useGraphStore(state => state.selectedNodeId);
   const selectedAssetPath = useGraphStore(state => state.selectedAssetPath);
   const isEditorOpen = useGraphStore(state => state.isEditorOpen);
+  const isSidebarOpen = useGraphStore(state => state.isSidebarOpen);
+  const setIsSidebarOpen = useGraphStore(state => state.setIsSidebarOpen);
   const [editorWidth, setEditorWidth] = useState(500);
   const [isResizing, setIsResizing] = useState(false);
 
@@ -43,7 +46,37 @@ export default function Home() {
   return (
     <main style={{ display: 'flex', height: '100vh', width: '100vw', backgroundColor: 'var(--background)', overflow: 'hidden' }}>
       <CommandPalette />
-      <Sidebar />
+      
+      {!isSidebarOpen && (
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          title="Open Sidebar"
+          style={{
+            position: 'absolute',
+            top: '24px',
+            left: '24px',
+            zIndex: 100,
+            background: '#161b22',
+            border: '1px solid #30363d',
+            color: '#8b949e',
+            borderRadius: '6px',
+            padding: '8px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#c9d1d9'; e.currentTarget.style.borderColor = '#8b949e'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = '#8b949e'; e.currentTarget.style.borderColor = '#30363d'; }}
+        >
+          <PanelLeft size={18} />
+        </button>
+      )}
+
+      {isSidebarOpen && <Sidebar />}
+      
       <section style={{ flex: 1, position: 'relative', display: 'flex', overflow: 'hidden' }}>
         <div style={{ flex: 1, position: 'relative' }}>
           <SkillGraph />

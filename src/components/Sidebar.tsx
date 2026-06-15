@@ -3,7 +3,7 @@
 import { useGraphStore } from '@/store/graphStore';
 import { FileData } from '@/lib/parser';
 import { useRef, useState, useEffect } from 'react';
-import { FolderUp, GitBranch, Activity, Layers, Code2, Loader2, GitPullRequest, AlertCircle, RefreshCw, CheckCircle2, ArrowRight, ArrowLeft, Search, Compass, ChevronDown, Network, Settings2, Sparkles, Info, HelpCircle } from 'lucide-react';
+import { FolderUp, GitBranch, Activity, Layers, Code2, Loader2, GitPullRequest, AlertCircle, RefreshCw, CheckCircle2, ArrowRight, ArrowLeft, Search, Compass, ChevronDown, Network, Settings2, Sparkles, Info, HelpCircle, PanelLeftClose } from 'lucide-react';
 import { fetchGithubRepo } from '@/lib/github';
 import PRModal from './PRModal';
 import DiagnosticModal from './DiagnosticModal';
@@ -30,6 +30,7 @@ export default function Sidebar() {
   const toggleShowOrphans = useGraphStore(state => state.toggleShowOrphans);
   const isEditorOpen = useGraphStore(state => state.isEditorOpen);
   const setIsEditorOpen = useGraphStore(state => state.setIsEditorOpen);
+  const setIsSidebarOpen = useGraphStore(state => state.setIsSidebarOpen);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [githubUrl, setGithubUrl] = useState('');
@@ -195,6 +196,15 @@ export default function Sidebar() {
             title="AI Settings"
           >
             <Settings2 size={18} />
+          </button>
+          <button 
+            onClick={() => setIsSidebarOpen(false)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8b949e', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', borderRadius: '6px', transition: 'background 0.2s' }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+            title="Close Sidebar"
+          >
+            <PanelLeftClose size={18} />
           </button>
         </div>
       </div>

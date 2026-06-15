@@ -12,6 +12,9 @@ export default function AISettingsModal({ onClose }: { onClose: () => void }) {
   const [anthropicKey, setAnthropicKey] = useState(store.anthropicKey);
   const [anthropicModel, setAnthropicModel] = useState(store.anthropicModel);
   const [anthropicBaseUrl, setAnthropicBaseUrl] = useState(store.anthropicBaseUrl);
+  const [geminiKey, setGeminiKey] = useState(store.geminiKey);
+  const [geminiModel, setGeminiModel] = useState(store.geminiModel);
+  const [geminiBaseUrl, setGeminiBaseUrl] = useState(store.geminiBaseUrl);
 
   const handleSave = () => {
     store.setAIProvider(provider);
@@ -21,6 +24,9 @@ export default function AISettingsModal({ onClose }: { onClose: () => void }) {
     store.setAnthropicKey(anthropicKey);
     store.setAnthropicModel(anthropicModel);
     store.setAnthropicBaseUrl(anthropicBaseUrl);
+    store.setGeminiKey(geminiKey);
+    store.setGeminiModel(geminiModel);
+    store.setGeminiBaseUrl(geminiBaseUrl);
     onClose();
   };
 
@@ -88,6 +94,16 @@ export default function AISettingsModal({ onClose }: { onClose: () => void }) {
             >
               Anthropic
             </button>
+            <button
+              onClick={() => setProvider('gemini')}
+              style={{
+                flex: 1, padding: '8px', borderRadius: '6px', border: `1px solid ${provider === 'gemini' ? '#a371f7' : '#30363d'}`,
+                background: provider === 'gemini' ? 'rgba(163, 113, 247, 0.1)' : 'transparent',
+                color: provider === 'gemini' ? '#a371f7' : '#8b949e', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s'
+              }}
+            >
+              Gemini
+            </button>
           </div>
 
           {provider === 'openai' && (
@@ -118,6 +134,19 @@ export default function AISettingsModal({ onClose }: { onClose: () => void }) {
               
               <div style={labelStyle}><Globe size={14} /> Base URL (CORS Proxy)</div>
               <input type="text" value={anthropicBaseUrl} onChange={e => setAnthropicBaseUrl(e.target.value)} placeholder="https://api.anthropic.com" style={inputStyle} />
+            </div>
+          )}
+
+          {provider === 'gemini' && (
+            <div>
+              <div style={labelStyle}><Key size={14} /> API Key</div>
+              <input type="password" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} placeholder="AIzaSy..." style={inputStyle} />
+              
+              <div style={labelStyle}><Cpu size={14} /> Model</div>
+              <input type="text" value={geminiModel} onChange={e => setGeminiModel(e.target.value)} placeholder="gemini-flash-latest" style={inputStyle} />
+              
+              <div style={labelStyle}><Globe size={14} /> Base URL</div>
+              <input type="text" value={geminiBaseUrl} onChange={e => setGeminiBaseUrl(e.target.value)} placeholder="https://generativelanguage.googleapis.com" style={inputStyle} />
             </div>
           )}
 
