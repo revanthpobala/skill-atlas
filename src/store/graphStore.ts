@@ -8,11 +8,13 @@ interface GraphState {
   edges: XYEdge[];
   selectedNodeId: string | null;
   selectedAssetPath: string | null;
+  isEditorOpen: boolean;
   stagedChanges: Record<string, string>; // path -> content
   showOrphansOnly: boolean;
   loadFiles: (files: FileData[]) => void;
   setSelectedNode: (id: string | null) => void;
   setSelectedAsset: (path: string | null) => void;
+  setIsEditorOpen: (isOpen: boolean) => void;
   updateNodeContent: (id: string, newContent: string) => void;
   discardChanges: (path: string) => void;
   toggleShowOrphans: () => void;
@@ -89,6 +91,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   edges: [],
   selectedNodeId: null,
   selectedAssetPath: null,
+  isEditorOpen: false,
   stagedChanges: {},
   showOrphansOnly: false,
 
@@ -112,15 +115,19 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     });
 
     const { layoutedNodes, layoutedEdges } = getLayoutedElements(restoredNodes, edges);
-    set({ nodes: layoutedNodes, edges: layoutedEdges, selectedNodeId: null, selectedAssetPath: null });
+    set({ nodes: layoutedNodes, edges: layoutedEdges, selectedNodeId: null, selectedAssetPath: null, isEditorOpen: false });
   },
 
   setSelectedNode: (id: string | null) => {
-    set({ selectedNodeId: id, selectedAssetPath: null });
+    set({ selectedNodeId: id, selectedAssetPath: null, isEditorOpen: id !== null });
   },
 
   setSelectedAsset: (path: string | null) => {
-    set({ selectedAssetPath: path });
+    set({ selectedAssetPath: path, isEditorOpen: path !== null });
+  },
+
+  setIsEditorOpen: (isOpen: boolean) => {
+    set({ isEditorOpen: isOpen });
   },
 
   updateNodeContent: (id: string, newContent: string) => {

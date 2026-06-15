@@ -28,6 +28,8 @@ export default function Sidebar() {
   const updateNodeContent = useGraphStore(state => state.updateNodeContent);
   const showOrphansOnly = useGraphStore(state => state.showOrphansOnly);
   const toggleShowOrphans = useGraphStore(state => state.toggleShowOrphans);
+  const isEditorOpen = useGraphStore(state => state.isEditorOpen);
+  const setIsEditorOpen = useGraphStore(state => state.setIsEditorOpen);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [githubUrl, setGithubUrl] = useState('');
@@ -543,6 +545,34 @@ export default function Sidebar() {
                       <Sparkles size={16} />
                       Analyze Skill with AI Copilot
                     </button>
+
+                    {!isEditorOpen && (
+                      <button 
+                        onClick={() => setIsEditorOpen(true)}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          background: 'rgba(255,255,255,0.05)',
+                          color: '#c9d1d9',
+                          border: '1px solid #30363d',
+                          padding: '10px 12px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          transition: 'background 0.2s',
+                          marginTop: '8px'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                      >
+                        <Code2 size={16} />
+                        Open Code Editor
+                      </button>
+                    )}
                   </div>
 
                   {/* Meta Information / Metrics */}

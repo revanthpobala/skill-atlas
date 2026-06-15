@@ -59,6 +59,7 @@ export default function EditorPanel() {
   const nodes = useGraphStore(state => state.nodes);
   const updateNodeContent = useGraphStore(state => state.updateNodeContent);
   const setSelectedNode = useGraphStore(state => state.setSelectedNode);
+  const setIsEditorOpen = useGraphStore(state => state.setIsEditorOpen);
   const discardChanges = useGraphStore(state => state.discardChanges);
   const selectedAssetPath = useGraphStore(state => state.selectedAssetPath);
   const setSelectedAsset = useGraphStore(state => state.setSelectedAsset);
@@ -126,7 +127,7 @@ export default function EditorPanel() {
             {currentPath}
           </span>
           <button 
-            onClick={() => selectedAssetPath ? setSelectedAsset(null) : setSelectedNode(null)}
+            onClick={() => setIsEditorOpen(false)}
             style={{ background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer', display: 'flex', marginLeft: '8px', padding: '2px', borderRadius: '4px' }}
             onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
             onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}

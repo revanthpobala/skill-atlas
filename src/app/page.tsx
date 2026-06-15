@@ -9,6 +9,8 @@ import { useState, useEffect } from 'react';
 
 export default function Home() {
   const selectedNodeId = useGraphStore(state => state.selectedNodeId);
+  const selectedAssetPath = useGraphStore(state => state.selectedAssetPath);
+  const isEditorOpen = useGraphStore(state => state.isEditorOpen);
   const [editorWidth, setEditorWidth] = useState(500);
   const [isResizing, setIsResizing] = useState(false);
 
@@ -46,7 +48,7 @@ export default function Home() {
         <div style={{ flex: 1, position: 'relative' }}>
           <SkillGraph />
         </div>
-        {selectedNodeId && (
+        {(selectedNodeId || selectedAssetPath) && isEditorOpen && (
           <>
             <div 
               style={{
