@@ -20,6 +20,11 @@ export const authOptions = {
       session.accessToken = token.accessToken;
       return session;
     }
+  },
+  theme: {
+    colorScheme: "dark" as const,
+    brandColor: "#58a6ff",
+    logo: ""
   }
 }
 

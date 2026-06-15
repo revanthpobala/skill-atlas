@@ -6,6 +6,7 @@ export interface ValidationResult {
 export function validateSkill(
   frontmatter: any, 
   path: string, 
+  content: string,
   allFiles: { path: string }[]
 ): ValidationResult {
   const errors: string[] = [];
@@ -64,6 +65,15 @@ export function validateSkill(
     if (description.includes('<') || description.includes('>')) {
       errors.push(`Description cannot contain XML angle brackets (< or >).`);
     }
+  }
+
+  // 6. Size and Atomicity check
+  const lines = content.split('\n').length;
+  const words = content.trim().split(/\s+/).filter(Boolean).length;
+  const tokens = Math.ceil(words * 1.3);
+
+  if (tokens > 5000 || lines > 800) {
+    errors.push(`Skill is too large (${tokens} tokens, ${lines} lines). Skills must be highly atomic and focused. Break this down into smaller, composable skills.`);
   }
 
   return {

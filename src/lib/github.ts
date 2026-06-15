@@ -1,3 +1,5 @@
+'use server';
+
 import { FileData } from './parser';
 
 export async function fetchGithubRepo(url: string, token?: string): Promise<FileData[]> {
@@ -14,12 +16,29 @@ export async function fetchGithubRepo(url: string, token?: string): Promise<File
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // 1. Fetch the tree
-    const treeUrl = `https://api.github.com/repos/${owner}/${cleanRepo}/git/trees/main?recursive=1`;
-    const response = await fetch(treeUrl, { headers });
+    let response;
+    
+    try {
+      const treeUrlMain = `https://api.github.com/repos/${owner}/${cleanRepo}/git/trees/main?recursive=1`;
+      response = await fetch(treeUrlMain, { headers });
+      
+      // Fallback to master if main doesn't exist
+      if (response.status === 404) {
+        const treeUrlMaster = `https://api.github.com/repos/${owner}/${cleanRepo}/git/trees/master?recursive=1`;
+        response = await fetch(treeUrlMaster, { headers });
+      }
+    } catch (e: any) {
+      if (e.name === 'TypeError' && e.message === 'Failed to fetch') {
+        throw new Error('Network error: Could not reach GitHub API. Please check your internet connection, adblocker, or VPN/proxy settings.');
+      }
+      throw e;
+    }
+
     if (!response.ok) {
       if (response.status === 404 && !token) {
-        throw new Error('Repository not found. If this is a private repository, please sign in first.');
+        throw new Error('Repository or branch not found. If this is a private repository, please sign in first.');
+      } else if (response.status === 403) {
+        throw new Error('GitHub API rate limit exceeded. Please sign in to increase your rate limit.');
       }
       throw new Error(`Failed to fetch repo tree: ${response.statusText}`);
     }
@@ -27,10 +46,14 @@ export async function fetchGithubRepo(url: string, token?: string): Promise<File
     const treeData = await response.json();
     if (!treeData.tree) throw new Error('No tree data found');
 
-    // 2. Fetch contents for text files (skills and scripts)
-    const fetchPromises = treeData.tree
-      .filter((item: any) => item.type === 'blob')
-      .map(async (file: any): Promise<FileData | null> => {
+    // 2. Fetch contents for text files (skills and scripts) in chunks to avoid hanging sockets
+    const blobs = treeData.tree.filter((item: any) => item.type === 'blob');
+    const results: FileData[] = [];
+    const chunkSize = 25;
+
+    for (let i = 0; i < blobs.length; i += chunkSize) {
+      const chunk = blobs.slice(i, i + chunkSize);
+      const chunkPromises = chunk.map(async (file: any): Promise<FileData | null> => {
         try {
           // Exclude obvious binaries
           const ext = file.path.split('.').pop()?.toLowerCase();
@@ -51,8 +74,11 @@ export async function fetchGithubRepo(url: string, token?: string): Promise<File
         }
       });
 
-    const results = await Promise.all(fetchPromises);
-    return results.filter(Boolean) as FileData[];
+      const chunkResults = await Promise.all(chunkPromises);
+      results.push(...chunkResults.filter(Boolean) as FileData[]);
+    }
+
+    return results;
 
   } catch (error) {
     console.error('GitHub fetch error:', error);

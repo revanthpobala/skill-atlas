@@ -9,17 +9,19 @@ interface GraphState {
   selectedNodeId: string | null;
   selectedAssetPath: string | null;
   stagedChanges: Record<string, string>; // path -> content
+  showOrphansOnly: boolean;
   loadFiles: (files: FileData[]) => void;
   setSelectedNode: (id: string | null) => void;
   setSelectedAsset: (path: string | null) => void;
   updateNodeContent: (id: string, newContent: string) => void;
   discardChanges: (path: string) => void;
+  toggleShowOrphans: () => void;
 }
 
 const getLayoutedElements = (nodes: XYNode[], edges: XYEdge[]) => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
-  dagreGraph.setGraph({ rankdir: 'LR', ranksep: 200, nodesep: 40 });
+  dagreGraph.setGraph({ rankdir: 'LR', ranksep: 250, nodesep: 80 });
 
   const connectedNodes = nodes.filter(n => !(n.data.issues as any[])?.includes('orphan'));
   const orphanNodes = nodes.filter(n => (n.data.issues as any[])?.includes('orphan'));
@@ -34,23 +36,38 @@ const getLayoutedElements = (nodes: XYNode[], edges: XYEdge[]) => {
 
   dagre.layout(dagreGraph);
 
-  let maxDagreY = 0;
+  const columnsMap = new Map<number, typeof connectedNodes>();
+  connectedNodes.forEach(node => {
+    const pos = dagreGraph.node(node.id);
+    const x = Math.round(pos.x);
+    if (!columnsMap.has(x)) columnsMap.set(x, []);
+    columnsMap.get(x)!.push(node);
+  });
 
-  const layoutedConnected = connectedNodes.map((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
-    const x = nodeWithPosition.x - 140;
-    const y = nodeWithPosition.y - 60;
-    if (y > maxDagreY) maxDagreY = y;
-    return {
-      ...node,
-      position: { x, y },
-    };
+  let maxGridY = 0;
+  const layoutedConnected: any[] = [];
+  const sortedXs = Array.from(columnsMap.keys()).sort((a, b) => a - b);
+  
+  sortedXs.forEach((x, colIndex) => {
+    const colNodes = columnsMap.get(x)!;
+    colNodes.sort((a, b) => dagreGraph.node(a.id).y - dagreGraph.node(b.id).y);
+    
+    colNodes.forEach((node, rowIndex) => {
+      const gridX = colIndex * 450;
+      const gridY = rowIndex * 160;
+      if (gridY > maxGridY) maxGridY = gridY;
+      
+      layoutedConnected.push({
+        ...node,
+        position: { x: gridX, y: gridY }
+      });
+    });
   });
 
   const columns = 5;
   const gridSpacingX = 320;
   const gridSpacingY = 160;
-  const startY = Math.max(maxDagreY + 300, 0);
+  const startY = Math.max(maxGridY + 300, 0);
 
   const layoutedOrphans = orphanNodes.map((node, i) => {
     const row = Math.floor(i / columns);
@@ -73,6 +90,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   selectedNodeId: null,
   selectedAssetPath: null,
   stagedChanges: {},
+  showOrphansOnly: false,
 
   loadFiles: (files: FileData[]) => {
     const { nodes, edges } = parseSkillLibrary(files);
@@ -114,18 +132,43 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     const newStagedChanges = { ...stagedChanges, [path]: newContent };
 
     const updatedNodes = nodes.map(n => 
-      n.id === id ? { ...n, data: { ...n.data, content: newContent, isModified: true } } : n
+      n.id === id ? { 
+        ...n, 
+        data: { 
+          ...n.data, 
+          content: newContent,
+          originalContent: n.data.originalContent !== undefined ? n.data.originalContent : n.data.content,
+          isModified: true 
+        } 
+      } : n
     );
 
     set({ nodes: updatedNodes, stagedChanges: newStagedChanges });
   },
 
   discardChanges: (path: string) => {
-    const { stagedChanges } = get();
+    const { stagedChanges, nodes } = get();
     const newStagedChanges = { ...stagedChanges };
     delete newStagedChanges[path];
-    set({ stagedChanges: newStagedChanges });
-    // Note: Re-loading files from source would be needed to revert the graph content visually,
-    // but the backend state is cleared.
+    
+    const updatedNodes = nodes.map(n => {
+       if (n.data.path === path) {
+         return {
+           ...n,
+           data: {
+             ...n.data,
+             content: n.data.originalContent !== undefined ? n.data.originalContent : n.data.content,
+             isModified: false
+           }
+         };
+       }
+       return n;
+    });
+
+    set({ stagedChanges: newStagedChanges, nodes: updatedNodes });
+  },
+
+  toggleShowOrphans: () => {
+    set(state => ({ showOrphansOnly: !state.showOrphansOnly }));
   }
 }));

@@ -3,7 +3,7 @@ import remarkParse from 'remark-parse';
 import remarkFrontmatter from 'remark-frontmatter';
 import { visit } from 'unist-util-visit';
 import { parse as parseYaml } from 'yaml';
-import { Node as XYNode, Edge as XYEdge } from '@xyflow/react';
+import { Node as XYNode, Edge as XYEdge, MarkerType } from '@xyflow/react';
 import { validateSkill } from './validator';
 
 export interface FileData {
@@ -27,10 +27,10 @@ export function parseSkillLibrary(files: FileData[]): ParseResult {
   const assetFiles = files.filter(f => !/skill\.md$/i.test(f.path));
   
   // Create nodes for Skills
-  const parsedDocs = skillFiles.map((file) => {
-    const id = `node_${nodeCounter++}`;
-    fileIdMap.set(file.path, id);
-    
+  const parsedDocs: any[] = [];
+  const skillNameMap = new Map<string, string>(); // skillName -> nodeId
+
+  skillFiles.forEach((file) => {
     const tree = unified()
       .use(remarkParse)
       .use(remarkFrontmatter)
@@ -55,25 +55,45 @@ export function parseSkillLibrary(files: FileData[]): ParseResult {
     const baseIdentity = fileName.toLowerCase() === 'skill' ? parentDirName : fileName;
     const skillName = frontmatter.name || firstHeading || baseIdentity;
     
-    const validationResult = validateSkill(frontmatter, file.path, files);
+    let id = skillNameMap.get(skillName);
+    let validationResult = validateSkill(frontmatter, file.path, file.content, files);
 
-    nodes.push({
-      id,
-      type: 'custom',
-      position: { x: 0, y: 0 },
-      data: { 
-        label: skillName, 
-        path: file.path, 
-        description: frontmatter.description || '',
-        content: file.content,
-        isAsset: false,
-        assets: [],
-        validationErrors: validationResult.errors,
-        issues: validationResult.isValid ? [] : ['error']
+    const lines = file.content.split('\n').length;
+    const words = file.content.trim().split(/\s+/).filter(Boolean).length;
+    const chars = file.content.length;
+    const tokens = Math.ceil(words * 1.3);
+
+    if (!id) {
+      id = `node_${nodeCounter++}`;
+      skillNameMap.set(skillName, id);
+      
+      nodes.push({
+        id,
+        type: 'custom',
+        position: { x: 0, y: 0 },
+        data: { 
+          label: skillName, 
+          path: file.path,
+          duplicatePaths: [],
+          description: frontmatter.description || '',
+          content: file.content,
+          isAsset: false,
+          assets: [],
+          validationErrors: validationResult.errors,
+          issues: validationResult.isValid ? [] : ['error'],
+          metrics: { lines, words, chars, tokens }
+        }
+      });
+    } else {
+      // Deduplicate: Add to duplicatePaths
+      const existingNode = nodes.find(n => n.id === id);
+      if (existingNode && existingNode.data.duplicatePaths) {
+        (existingNode.data.duplicatePaths as string[]).push(file.path);
       }
-    });
+    }
 
-    return { id, tree, path: file.path, frontmatter, content: file.content, validationResult };
+    fileIdMap.set(file.path, id);
+    parsedDocs.push({ id, tree, path: file.path, frontmatter, content: file.content, validationResult });
   });
 
   const createdAssets = new Map<string, string>(); // path -> nodeId
@@ -87,12 +107,14 @@ export function parseSkillLibrary(files: FileData[]): ParseResult {
     if (doc.frontmatter.dependencies && Array.isArray(doc.frontmatter.dependencies)) {
       doc.frontmatter.dependencies.forEach((dep: string) => {
         const targetNode = nodes.find(n => n.data.label === dep && !n.data.isAsset);
-        if (targetNode) {
+        if (targetNode && targetNode.id !== sourceId && !edges.find(e => e.source === sourceId && e.target === targetNode.id)) {
           edges.push({
             id: `edge_${sourceId}_${targetNode.id}_${edgeIndex++}`,
             source: sourceId,
             target: targetNode.id,
-            label: 'frontmatter'
+            type: 'smoothstep',
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#58a6ff' },
+            style: { stroke: '#58a6ff' }
           });
         }
       });
@@ -121,7 +143,9 @@ export function parseSkillLibrary(files: FileData[]): ParseResult {
               id: `edge_${sourceId}_${targetPathMatch.id}_${edgeIndex++}`,
               source: sourceId,
               target: targetPathMatch.id,
-              label: 'link'
+              type: 'smoothstep',
+              markerEnd: { type: MarkerType.ArrowClosed, color: '#58a6ff' },
+              style: { stroke: '#58a6ff' }
             });
           }
         }
@@ -133,8 +157,10 @@ export function parseSkillLibrary(files: FileData[]): ParseResult {
               id: `edge_${sourceId}_${targetNode.id}_${edgeIndex++}`,
               source: sourceId,
               target: targetNode.id,
-              label: 'implicit',
-              animated: true
+              animated: true,
+              type: 'smoothstep',
+              markerEnd: { type: MarkerType.ArrowClosed, color: '#d29922' },
+              style: { stroke: '#d29922', strokeDasharray: '4,4' }
             });
           }
         }
@@ -157,9 +183,9 @@ export function parseSkillLibrary(files: FileData[]): ParseResult {
               id: `edge_${sourceId}_${targetNode.id}_${edgeIndex++}`,
               source: sourceId,
               target: targetNode.id,
-              label: 'mention',
               animated: true,
-              style: { strokeDasharray: '2,2', stroke: '#8b949e', opacity: 0.5 }
+              markerEnd: { type: MarkerType.ArrowClosed, color: '#8b949e' },
+              style: { strokeDasharray: '2,6', stroke: '#8b949e' }
             });
           }
         }
@@ -171,9 +197,9 @@ export function parseSkillLibrary(files: FileData[]): ParseResult {
               id: `edge_${sourceId}_${targetNode.id}_${edgeIndex++}`,
               source: sourceId,
               target: targetNode.id,
-              label: 'mention',
               animated: true,
-              style: { strokeDasharray: '2,2', stroke: '#8b949e', opacity: 0.5 }
+              markerEnd: { type: MarkerType.ArrowClosed, color: '#8b949e' },
+              style: { strokeDasharray: '2,6', stroke: '#8b949e' }
             });
           }
         }
@@ -211,8 +237,9 @@ export function parseSkillLibrary(files: FileData[]): ParseResult {
   const adj = new Map<string, string[]>();
   nodes.forEach(n => adj.set(n.id, []));
   edges.forEach(e => {
-    // Only consider skill-to-skill links for cycles, not skill-to-asset
-    if (e.label !== 'owns') {
+    // Only consider explicit dependencies (frontmatter, markdown links, or backtick codes) for cycle detection.
+    // Casual text 'mentions' do NOT constitute a strict cyclic dependency.
+    if (e.label === 'frontmatter' || e.label === 'link' || e.label === 'implicit') {
       adj.get(e.source)?.push(e.target);
     }
   });
@@ -271,6 +298,13 @@ export function parseSkillLibrary(files: FileData[]): ParseResult {
     const issues: string[] = Array.isArray(n.data.issues) ? [...n.data.issues] : [];
     if (cycleNodes.has(n.id)) {
       issues.push('cycle');
+      
+      const validationErrors = Array.isArray(n.data.validationErrors) ? [...n.data.validationErrors] : [];
+      if (!validationErrors.includes("Critical Error: This skill is part of a circular dependency (infinite loop).")) {
+        validationErrors.push("Critical Error: This skill is part of a circular dependency (infinite loop).");
+      }
+      n.data.validationErrors = validationErrors;
+      if (!issues.includes('error')) issues.push('error');
     }
     
     // Check for orphans (only applies to skills, not assets)

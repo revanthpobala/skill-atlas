@@ -2,8 +2,9 @@
 
 import { useGraphStore } from '@/store/graphStore';
 import Editor from '@monaco-editor/react';
-import { FileCode, X, BookOpen, Edit3, RotateCcw } from 'lucide-react';
+import { FileCode, X, BookOpen, Edit3, RotateCcw, Sparkles, Loader2, Send } from 'lucide-react';
 import { useState } from 'react';
+import { fetchAIEdit } from '@/lib/ai';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { visit } from 'unist-util-visit';
@@ -64,6 +65,10 @@ export default function EditorPanel() {
   const setSelectedAsset = useGraphStore(state => state.setSelectedAsset);
   
   const [mode, setMode] = useState<'view' | 'edit'>('view');
+  
+  const [aiInstruction, setAiInstruction] = useState('');
+  const [isAiEditing, setIsAiEditing] = useState(false);
+  const [aiEditError, setAiEditError] = useState('');
 
   const selectedNode = nodes.find(n => n.id === selectedNodeId);
 
@@ -82,10 +87,19 @@ export default function EditorPanel() {
   const content = selectedAsset ? selectedAsset.content : (selectedNode.data.content as string || '');
   const isModified = selectedAsset ? false : (selectedNode.data.isModified as boolean);
   const isMarkdown = currentPath.toLowerCase().endsWith('.md');
+  const isNotebook = currentPath.toLowerCase().endsWith('.ipynb');
+
+  let notebookCells: any[] = [];
+  if (isNotebook) {
+    try {
+      const parsed = JSON.parse(content);
+      notebookCells = parsed.cells || [];
+    } catch (e) {}
+  }
 
   const handleDiscard = () => {
     if (confirm('Discard uncommitted changes to this file?')) {
-      discardChanges(selectedNode.data.path as string);
+      discardChanges(currentPath);
     }
   };
 
@@ -224,10 +238,106 @@ export default function EditorPanel() {
               })()}
             </div>
           </div>
+        ) : mode === 'view' && isNotebook ? (
+          <div style={{ padding: '24px', color: 'var(--foreground)', lineHeight: '1.6', fontFamily: 'var(--font-sans)', fontSize: '0.95rem' }}>
+            <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+               {notebookCells.length === 0 && (
+                 <div style={{ color: '#8b949e', fontStyle: 'italic' }}>Invalid or empty notebook file.</div>
+               )}
+               {notebookCells.map((cell, idx) => {
+                  const source = Array.isArray(cell.source) ? cell.source.join('') : cell.source || '';
+                  if (cell.cell_type === 'markdown') {
+                    return (
+                      <div key={idx} className="markdown-body">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{source}</ReactMarkdown>
+                      </div>
+                    );
+                  } else if (cell.cell_type === 'code') {
+                    return (
+                      <div key={idx} style={{ background: '#0d1117', border: '1px solid #30363d', borderRadius: '6px', overflow: 'hidden' }}>
+                         <div style={{ padding: '6px 12px', background: '#161b22', borderBottom: '1px solid #30363d', fontSize: '0.75rem', color: '#8b949e', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>In [{cell.execution_count || ' '}]:</span>
+                            <span>Python</span>
+                         </div>
+                         <pre style={{ margin: 0, padding: '12px 16px', overflowX: 'auto', fontSize: '0.85rem', fontFamily: 'var(--font-mono)', color: '#c9d1d9', background: 'transparent' }}>
+                           <code>{source}</code>
+                         </pre>
+                      </div>
+                    );
+                  }
+                  return null;
+               })}
+            </div>
+          </div>
         ) : (
-          <div style={{ height: '100%', position: 'relative' }}>
-            <Editor
-              height="100%"
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            {mode === 'edit' && !selectedAsset && (
+              <div style={{ 
+                padding: '12px 16px', 
+                borderBottom: '1px solid #30363d', 
+                background: '#161b22', 
+                display: 'flex', 
+                gap: '8px',
+                alignItems: 'center' 
+              }}>
+                <Sparkles size={16} color="#58a6ff" />
+                <input 
+                  type="text" 
+                  value={aiInstruction}
+                  onChange={e => setAiInstruction(e.target.value)}
+                  placeholder="Ask AI to edit this code (e.g. 'refactor this to use async/await')"
+                  disabled={isAiEditing}
+                  onKeyDown={async (e) => {
+                    if (e.key === 'Enter' && aiInstruction.trim() && !isAiEditing) {
+                      setIsAiEditing(true);
+                      setAiEditError('');
+                      const currentContent = content;
+                      updateNodeContent(selectedNode.id, ''); // clear content to stream new one
+                      
+                      try {
+                        let newContent = '';
+                        await fetchAIEdit(currentContent, aiInstruction, (chunk) => {
+                          newContent += chunk;
+                          updateNodeContent(selectedNode.id, newContent);
+                        });
+                        setAiInstruction('');
+                      } catch (err: any) {
+                        setAiEditError(err.message || 'Failed to edit with AI');
+                        updateNodeContent(selectedNode.id, currentContent); // restore on error
+                      } finally {
+                        setIsAiEditing(false);
+                      }
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid #30363d',
+                    color: '#c9d1d9',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    fontFamily: 'var(--font-sans)'
+                  }}
+                />
+                {isAiEditing ? (
+                  <Loader2 size={16} className="animate-spin" color="#8b949e" />
+                ) : (
+                  <Send size={16} color={aiInstruction.trim() ? '#58a6ff' : '#8b949e'} />
+                )}
+              </div>
+            )}
+            
+            {aiEditError && (
+              <div style={{ padding: '8px 16px', background: 'rgba(248, 81, 73, 0.1)', color: '#ff7b72', fontSize: '0.8rem', borderBottom: '1px solid rgba(248, 81, 73, 0.2)' }}>
+                {aiEditError}
+              </div>
+            )}
+            
+            <div style={{ flex: 1, position: 'relative' }}>
+              <Editor
+                height="100%"
               language={
                 currentPath.toLowerCase().endsWith('.py') ? 'python' :
                 currentPath.toLowerCase().endsWith('.js') || currentPath.toLowerCase().endsWith('.jsx') ? 'javascript' :
@@ -257,11 +367,12 @@ export default function EditorPanel() {
                 readOnly: mode === 'view' || !!selectedAsset
               }}
             />
-            {selectedAsset && mode === 'edit' && (
-              <div style={{ position: 'absolute', bottom: '16px', right: '16px', background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', color: '#8b949e', backdropFilter: 'blur(4px)' }}>
-                Assets are Read-Only
-              </div>
-            )}
+              {selectedAsset && mode === 'edit' && (
+                <div style={{ position: 'absolute', bottom: '16px', right: '16px', background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', color: '#8b949e', backdropFilter: 'blur(4px)' }}>
+                  Assets are Read-Only
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

@@ -3,6 +3,7 @@
 import SkillGraph from '@/components/SkillGraph';
 import Sidebar from '@/components/Sidebar';
 import EditorPanel from '@/components/EditorPanel';
+import CommandPalette from '@/components/CommandPalette';
 import { useGraphStore } from '@/store/graphStore';
 import { useState, useEffect } from 'react';
 
@@ -39,6 +40,7 @@ export default function Home() {
 
   return (
     <main style={{ display: 'flex', height: '100vh', width: '100vw', backgroundColor: 'var(--background)', overflow: 'hidden' }}>
+      <CommandPalette />
       <Sidebar />
       <section style={{ flex: 1, position: 'relative', display: 'flex', overflow: 'hidden' }}>
         <div style={{ flex: 1, position: 'relative' }}>

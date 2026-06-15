@@ -14,7 +14,8 @@ import {
   Node,
   MarkerType,
   ReactFlowProvider,
-  useReactFlow
+  useReactFlow,
+  Panel
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useGraphStore } from '@/store/graphStore';
@@ -28,6 +29,7 @@ function GraphInner() {
   const storeNodes = useGraphStore(state => state.nodes);
   const storeEdges = useGraphStore(state => state.edges);
   const selectedNodeId = useGraphStore(state => state.selectedNodeId);
+  const showOrphansOnly = useGraphStore(state => state.showOrphansOnly);
   const setSelectedNode = useGraphStore(state => state.setSelectedNode);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   
@@ -35,38 +37,93 @@ function GraphInner() {
 
   const activeNodeId = selectedNodeId || hoveredNodeId;
 
+  const incomingIds = new Set<string>();
+  const outgoingIds = new Set<string>();
   const connectedNodeIds = new Set<string>();
+
   if (activeNodeId) {
     connectedNodeIds.add(activeNodeId);
     storeEdges.forEach(edge => {
-      if (edge.source === activeNodeId) connectedNodeIds.add(edge.target);
-      if (edge.target === activeNodeId) connectedNodeIds.add(edge.source);
+      if (edge.source === activeNodeId) {
+        connectedNodeIds.add(edge.target);
+        if (activeNodeId === selectedNodeId) outgoingIds.add(edge.target);
+      }
+      if (edge.target === activeNodeId) {
+        connectedNodeIds.add(edge.source);
+        if (activeNodeId === selectedNodeId) incomingIds.add(edge.source);
+      }
     });
   }
 
+  const incomingNodesSorted = storeNodes.filter(n => incomingIds.has(n.id)).sort((a, b) => a.position.y - b.position.y);
+  const outgoingNodesSorted = storeNodes.filter(n => outgoingIds.has(n.id)).sort((a, b) => a.position.y - b.position.y);
+  
+  const selectedNode = selectedNodeId ? storeNodes.find(n => n.id === selectedNodeId) : null;
+  const sx = selectedNode ? selectedNode.position.x : 0;
+  const sy = selectedNode ? selectedNode.position.y : 0;
+
   const displayNodes = storeNodes.map(node => {
     const isFocused = !activeNodeId || connectedNodeIds.has(node.id);
+    const isOrphan = (node.data.issues as string[] | undefined)?.includes('orphan');
+    let position = node.position;
+    let opacity = isFocused ? 1 : 0.4;
+
+    if (showOrphansOnly && !isOrphan) {
+      opacity = 0.05;
+    }
+
+    if (selectedNodeId && isFocused && node.id !== selectedNodeId) {
+      if (incomingIds.has(node.id)) {
+        const index = incomingNodesSorted.findIndex(n => n.id === node.id);
+        const rows = Math.min(5, Math.max(1, Math.ceil(Math.sqrt(incomingNodesSorted.length))));
+        const col = Math.floor(index / rows);
+        const row = index % rows;
+        position = { 
+          x: sx - (col + 1) * 400, 
+          y: sy + (row - (rows - 1) / 2) * 160 
+        };
+      } else if (outgoingIds.has(node.id)) {
+        const index = outgoingNodesSorted.findIndex(n => n.id === node.id);
+        const rows = Math.min(5, Math.max(1, Math.ceil(Math.sqrt(outgoingNodesSorted.length))));
+        const col = Math.floor(index / rows);
+        const row = index % rows;
+        position = { 
+          x: sx + (col + 1) * 400, 
+          y: sy + (row - (rows - 1) / 2) * 160 
+        };
+      }
+    }
+
     return {
       ...node,
+      position,
       style: {
         ...node.style,
-        opacity: isFocused ? 1 : 0.4,
-        transition: 'opacity 0.2s ease'
-      }
+        opacity,
+        transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+      },
+      zIndex: isFocused ? 50 : 0
     };
   });
 
   const displayEdges = storeEdges.map(edge => {
-    const isFocused = !activeNodeId || (connectedNodeIds.has(edge.source) && connectedNodeIds.has(edge.target));
+    const isGlobalView = !activeNodeId;
+    const isFocused = activeNodeId && (connectedNodeIds.has(edge.source) && connectedNodeIds.has(edge.target));
+    let opacity = isGlobalView ? 0.1 : (isFocused ? 1 : 0);
+    
+    if (showOrphansOnly) {
+      opacity = 0;
+    }
+
     return {
       ...edge,
       style: {
         ...edge.style,
         strokeWidth: isFocused ? 2 : 1,
-        opacity: isFocused ? 1 : 0.15,
+        opacity,
         transition: 'opacity 0.2s ease, stroke-width 0.2s ease'
       },
-      animated: isFocused && edge.animated,
+      animated: isFocused ? Boolean(edge.animated) : false,
       zIndex: isFocused ? 10 : 0
     };
   });
@@ -122,26 +179,51 @@ function GraphInner() {
       onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)}
       onNodeMouseLeave={() => setHoveredNodeId(null)}
       onPaneClick={() => setSelectedNode(null)}
+      panActivationKeyCode={null}
       defaultEdgeOptions={{
-        type: 'smoothstep',
+        type: 'default',
         style: { strokeWidth: 2, stroke: '#8b949e' },
         markerEnd: { type: MarkerType.ArrowClosed, color: '#8b949e' }
       }}
       fitView
     >
-      <Background color="#30363d" gap={20} size={1} />
-      <Controls style={{ backgroundColor: '#161b22', border: '1px solid #30363d' }} />
+      <Background color="#30363d" gap={24} size={2} />
+      <Controls style={{ display: 'flex', flexDirection: 'row' }} />
       <MiniMap 
-        nodeColor={(node: Node) => {
-          if (node.data?.isAsset) return '#30363d';
-          if ((node.data?.issues as any[])?.includes('cycle')) return '#f85149';
-          if ((node.data?.issues as any[])?.includes('error')) return '#da3633';
-          if ((node.data?.issues as any[])?.includes('orphan')) return '#d29922';
+        style={{ 
+          background: 'rgba(13, 17, 23, 0.8)', 
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255,255,255,0.05)',
+          borderRadius: '8px',
+          overflow: 'hidden'
+        }}
+        nodeColor={(node: any) => {
+          if (node.data?.isAsset) return '#d29922';
+          if ((node.data?.issues as string[])?.includes('error')) return '#f85149';
           return '#58a6ff';
         }}
-        maskColor="rgba(13, 17, 23, 0.7)"
-        style={{ backgroundColor: '#0d1117', border: '1px solid #30363d' }}
+        maskColor="rgba(0, 0, 0, 0.5)"
+        zoomable
+        pannable
       />
+      <Panel position="top-left" style={{ margin: '16px', color: '#8b949e', fontSize: '0.8rem', background: 'rgba(13, 17, 23, 0.7)', padding: '8px 12px', borderRadius: '6px', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.05)' }}>
+        {selectedNodeId ? 'Press Esc or click background to clear selection' : 'Scroll to zoom, drag to pan'}
+      </Panel>
+      <Panel position="top-right" style={{ background: 'rgba(22, 27, 34, 0.8)', border: '1px solid #30363d', borderRadius: '8px', padding: '12px', fontSize: '0.75rem', color: '#8b949e', display: 'flex', flexDirection: 'column', gap: '8px', backdropFilter: 'blur(10px)', marginTop: '16px', marginRight: '16px' }}>
+        <div style={{ fontWeight: 600, color: '#c9d1d9', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>Edge Legend</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ width: '24px', height: '2px', background: '#58a6ff' }}></div>
+          <span>Explicit Dependency</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ width: '24px', height: '2px', background: 'transparent', borderTop: '2px dashed #d29922' }}></div>
+          <span>Implicit (Backticks)</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ width: '24px', height: '2px', background: 'transparent', borderTop: '2px dashed #8b949e' }}></div>
+          <span>Soft Mention</span>
+        </div>
+      </Panel>
     </ReactFlow>
   );
 }

@@ -43,7 +43,7 @@ export default function SkillNode({ data }: any) {
       cursor: 'pointer',
       boxSizing: 'border-box'
     }}
-    className="skill-node-container"
+    className={`skill-node-container ${isModified ? 'node-modified' : ''}`}
     >
       <Handle type="target" position={Position.Left} style={{ background: '#8b949e', border: 'none', width: '8px', height: '8px' }} />
       
