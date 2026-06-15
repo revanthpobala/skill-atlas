@@ -2,6 +2,7 @@
   <img src="./public/logo.svg" alt="Skill Atlas Logo" width="120" />
   <h1>Skill Atlas Workbench</h1>
 </div>
+
 **Launch Application:**
 - [Access on Vercel](https://atlas-skills.vercel.app/)
 - [Access on Netlify](https://atlas-skills.netlify.app/)
