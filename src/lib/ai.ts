@@ -36,22 +36,19 @@ async function _runAI(provider: string, store: any, prompt: string, onChunk: (te
   if (provider === 'openai') {
     if (!store.openaiKey) throw new Error('OpenAI API Key is missing. Please configure it in settings.');
     
-    const response = await fetch('/api/proxy', {
+    // Clean up base URL to prevent double slashes
+    const baseUrl = store.openaiBaseUrl.replace(/\/+$/, '');
+    
+    const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${store.openaiKey}`
       },
       body: JSON.stringify({
-        url: `${store.openaiBaseUrl}/chat/completions`,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${store.openaiKey}`
-        },
-        body: {
-          model: store.openaiModel,
-          messages: [{ role: 'user', content: prompt }],
-          stream: true
-        }
+        model: store.openaiModel,
+        messages: [{ role: 'user', content: prompt }],
+        stream: true
       })
     });
 
@@ -85,24 +82,21 @@ async function _runAI(provider: string, store: any, prompt: string, onChunk: (te
   } else if (provider === 'anthropic') {
     if (!store.anthropicKey) throw new Error('Anthropic API Key is missing. Please configure it in settings.');
 
-    const response = await fetch('/api/proxy', {
+    const baseUrl = store.anthropicBaseUrl.replace(/\/+$/, '');
+
+    const response = await fetch(`${baseUrl}/v1/messages`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'x-api-key': store.anthropicKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerously-allow-browser': 'true'
       },
       body: JSON.stringify({
-        url: `${store.anthropicBaseUrl}/v1/messages`,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': store.anthropicKey,
-          'anthropic-version': '2023-06-01'
-        },
-        body: {
-          model: store.anthropicModel,
-          max_tokens: 4000,
-          messages: [{ role: 'user', content: prompt }],
-          stream: true
-        }
+        model: store.anthropicModel,
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: prompt }],
+        stream: true
       })
     });
 
