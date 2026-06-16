@@ -1,7 +1,11 @@
 {
   "name": "agentic-skill-validator",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": false,
+  "files": [
+    "bin/cli.js",
+    "README.md"
+  ],
   "bin": {
     "agentic-skill-validator": "bin/cli.js"
   },
@@ -9,6 +13,7 @@
     "dev": "next dev",
     "build": "next build",
     "build:cli": "esbuild bin/cli.ts --bundle --platform=node --target=node18 --outfile=bin/cli.js --banner:js=\"#!/usr/bin/env node\"",
+    "prepublishOnly": "rm -f bin/cli.js && npm run build:cli",
     "start": "next start",
     "lint": "eslint"
   },

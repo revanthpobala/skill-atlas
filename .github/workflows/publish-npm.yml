@@ -24,6 +24,10 @@ jobs:
       - name: Build CLI
         run: npm run build:cli
 
+      - name: Strip Heavy Web Dependencies for CLI
+        run: |
+          node -e "const fs=require('fs'); const pkg=JSON.parse(fs.readFileSync('package.json')); pkg.dependencies={}; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
+
       - name: Publish Package
         run: npm publish --access public
         env:
