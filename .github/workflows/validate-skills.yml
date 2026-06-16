@@ -18,6 +18,12 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build CLI
+        run: npm run build:cli
+
       - name: Run Skill Validator
-        # This runs the compiled binary to ensure skills meet atomicity and formatting rules.
-        run: npx skill-validator ./
+        # This runs the locally compiled binary to validate internal skills
+        run: node bin/cli.js ./
