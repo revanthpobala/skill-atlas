@@ -91,7 +91,7 @@ Skill Atlas includes a headless CLI designed specifically for CI/CD pipelines. T
 
 Run it locally against any directory containing your `.md` skills:
 ```bash
-npx agentic-skill-validator ./skills
+npx skill-validator ./skills
 ```
 
 ### GitHub Actions Integration
@@ -106,7 +106,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-      - run: npx agentic-skill-validator ./
+      - run: npx skill-validator ./
 ```
 
 If a skill fails validation, the CLI outputs a direct URL funneling the developer to the Skill Atlas visual graph to debug it.

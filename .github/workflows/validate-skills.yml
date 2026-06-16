@@ -20,4 +20,4 @@ jobs:
 
       - name: Run Skill Validator
         # This runs the compiled binary to ensure skills meet atomicity and formatting rules.
-        run: npx agentic-skill-validator ./
+        run: npx skill-validator ./
