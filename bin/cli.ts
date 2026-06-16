@@ -87,7 +87,8 @@ async function main() {
   if (totalErrors > 0) {
     console.log(`${RED}${BOLD}Validation Failed: ${totalErrors} skill(s) have errors.${RESET}`);
     console.log(`\n${BOLD}[FIX] Open your repository in Skill Atlas to visualize the graph and use the AI Copilot to refactor your skills:${RESET}`);
-    console.log(`${BLUE}👉 https://atlas-skills.netlify.app${RESET}\n`);
+    console.log(`${BLUE}👉 Web App: https://atlas-skills.netlify.app${RESET}`);
+    console.log(`${BLUE}👉 GitHub:  https://github.com/revanthpobala/skill-atlas${RESET}\n`);
     process.exit(1);
   } else {
     console.log(`${GREEN}${BOLD}Success: All ${totalValid} skill(s) passed validation.${RESET}\n`);
