@@ -85,6 +85,32 @@ By treating your agent's instructions as a compiled dependency tree, Skill Atlas
   <i>Leverage your configured LLM API keys to chat directly with a dedicated AI Copilot. The AI streams natural language analysis and proposes safe refactorings within markdown blocks. A one-click "Apply to Editor" button allows you to instantly merge the AI's code without corrupting your files with raw syntax. **Bring Your Own Key (BYOK):** Your API keys (OpenAI, Anthropic, Gemini) are stored securely in your browser's local storage. There is no database, no backend server, and no telemetry—everything is done entirely on your browser for ultimate privacy.</i>
 </details>
 
+## NPX Enterprise CLI
+
+Skill Atlas includes a headless CLI designed specifically for CI/CD pipelines. This allows teams to instantly validate agentic workflows directly in GitHub Actions without needing to open the web interface.
+
+Run it locally against any directory containing your `.md` skills:
+```bash
+npx skill-validator ./skills
+```
+
+### GitHub Actions Integration
+Drop this snippet into your repository to automatically block PRs if an AI skill violates optimal token limits or structural naming conventions:
+
+```yaml
+name: Validate Agentic Skills
+on: [push, pull_request]
+jobs:
+  validate-skills:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+      - run: npx skill-validator ./
+```
+
+If a skill fails validation, the CLI outputs a direct URL funneling the developer to the Skill Atlas visual graph to debug it.
+
 ## Anthropic Skill Validation Rules
 
 Skill Atlas comes pre-configured with a strict diagnostics engine that enforces best practices for AI agent instructions based on Anthropic's guidelines for atomic and composable skills.
