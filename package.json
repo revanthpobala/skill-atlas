@@ -1,9 +1,9 @@
 {
-  "name": "skill-graph",
+  "name": "skill-validator",
   "version": "0.1.0",
   "private": false,
   "bin": {
-    "skill-atlas": "bin/cli.js"
+    "skill-validator": "bin/cli.js"
   },
   "scripts": {
     "dev": "next dev",
