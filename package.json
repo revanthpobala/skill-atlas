@@ -1,10 +1,14 @@
 {
   "name": "skill-graph",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
+  "bin": {
+    "skill-atlas": "bin/cli.js"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:cli": "esbuild bin/cli.ts --bundle --platform=node --target=node18 --outfile=bin/cli.js --banner:js=\"#!/usr/bin/env node\"",
     "start": "next start",
     "lint": "eslint"
   },
@@ -34,6 +38,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/unist": "^3.0.3",
+    "esbuild": "^0.28.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
