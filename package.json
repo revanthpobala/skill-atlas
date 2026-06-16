@@ -1,9 +1,9 @@
 {
-  "name": "skill-validator",
-  "version": "1.0.1",
+  "name": "agentic-skill-validator",
+  "version": "1.0.0",
   "private": false,
   "bin": {
-    "skill-validator": "bin/cli.js"
+    "agentic-skill-validator": "bin/cli.js"
   },
   "scripts": {
     "dev": "next dev",
