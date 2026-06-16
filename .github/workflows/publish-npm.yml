@@ -19,7 +19,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org/'
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build CLI
         run: npm run build:cli
