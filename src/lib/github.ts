@@ -2,11 +2,12 @@
 
 import { FileData } from './parser';
 
-export async function fetchGithubRepo(url: string, token?: string): Promise<FileData[]> {
+export async function fetchGithubRepo(url: string, token?: string): Promise<{ success: true; data: FileData[] } | { success: false; error: string }> {
   try {
     // Basic regex to extract owner and repo from various github URL formats
-    const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
-    if (!match) throw new Error('Invalid GitHub URL');
+    const cleanUrl = url.replace(/^https?:\/\//, '').replace(/^www\./, '');
+    const match = cleanUrl.match(/^(?:github\.com\/)?([^\/]+)\/([^\/]+)/);
+    if (!match) return { success: false, error: 'Invalid GitHub URL format. Use "owner/repo" or "github.com/owner/repo"' };
     
     const [, owner, repo] = match;
     const cleanRepo = repo.replace('.git', '');
@@ -16,35 +17,43 @@ export async function fetchGithubRepo(url: string, token?: string): Promise<File
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    let response;
-    
+    let defaultBranch = 'main';
     try {
-      const treeUrlMain = `https://api.github.com/repos/${owner}/${cleanRepo}/git/trees/main?recursive=1`;
-      response = await fetch(treeUrlMain, { headers });
+      const repoInfoUrl = `https://api.github.com/repos/${owner}/${cleanRepo}`;
+      const repoRes = await fetch(repoInfoUrl, { headers });
       
-      // Fallback to master if main doesn't exist
-      if (response.status === 404) {
-        const treeUrlMaster = `https://api.github.com/repos/${owner}/${cleanRepo}/git/trees/master?recursive=1`;
-        response = await fetch(treeUrlMaster, { headers });
+      if (!repoRes.ok) {
+        if (repoRes.status === 404 && !token) {
+          return { success: false, error: 'Repository not found or is private. If private, please sign in first.' };
+        } else if (repoRes.status === 403) {
+          return { success: false, error: 'GitHub API rate limit exceeded or access forbidden. Please sign in to increase your rate limit.' };
+        }
+        return { success: false, error: `Failed to fetch repository metadata: ${repoRes.statusText}` };
       }
+      
+      const repoData = await repoRes.json();
+      defaultBranch = repoData.default_branch || 'main';
     } catch (e: any) {
       if (e.name === 'TypeError' && e.message === 'Failed to fetch') {
-        throw new Error('Network error: Could not reach GitHub API. Please check your internet connection, adblocker, or VPN/proxy settings.');
+        return { success: false, error: 'Network error: Could not reach GitHub API. Please check your internet connection, adblocker, or VPN/proxy settings.' };
       }
-      throw e;
+      return { success: false, error: e.message || 'Network error fetching repository metadata.' };
+    }
+
+    let response;
+    try {
+      const treeUrl = `https://api.github.com/repos/${owner}/${cleanRepo}/git/trees/${defaultBranch}?recursive=1`;
+      response = await fetch(treeUrl, { headers });
+    } catch (e: any) {
+      return { success: false, error: e.message || 'Network error fetching repository tree.' };
     }
 
     if (!response.ok) {
-      if (response.status === 404 && !token) {
-        throw new Error('Repository or branch not found. If this is a private repository, please sign in first.');
-      } else if (response.status === 403) {
-        throw new Error('GitHub API rate limit exceeded. Please sign in to increase your rate limit.');
-      }
-      throw new Error(`Failed to fetch repo tree: ${response.statusText}`);
+      return { success: false, error: `Failed to fetch repo tree: ${response.statusText}` };
     }
     
     const treeData = await response.json();
-    if (!treeData.tree) throw new Error('No tree data found');
+    if (!treeData.tree) return { success: false, error: 'No tree data found in repository.' };
 
     // 2. Fetch contents for text files (skills and scripts) in chunks to avoid hanging sockets
     const blobs = treeData.tree.filter((item: any) => item.type === 'blob');
@@ -78,11 +87,11 @@ export async function fetchGithubRepo(url: string, token?: string): Promise<File
       results.push(...chunkResults.filter(Boolean) as FileData[]);
     }
 
-    return results;
+    return { success: true, data: results };
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('GitHub fetch error:', error);
-    throw error;
+    return { success: false, error: error.message || 'Unknown error occurred.' };
   }
 }
 
@@ -99,8 +108,9 @@ export async function createPullRequest({
   branchName: string;
   stagedChanges: Record<string, string>;
 }): Promise<string> {
-  const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
-  if (!match) throw new Error('Invalid GitHub URL');
+  const cleanUrl = repoUrl.replace(/^https?:\/\//, '').replace(/^www\./, '');
+  const match = cleanUrl.match(/^(?:github\.com\/)?([^\/]+)\/([^\/]+)/);
+  if (!match) throw new Error('Invalid GitHub URL format. Use "owner/repo" or "github.com/owner/repo"');
   
   const [, owner, repoName] = match;
   const repo = repoName.replace('.git', '');

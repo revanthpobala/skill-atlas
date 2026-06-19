@@ -137,18 +137,16 @@ export default function Sidebar() {
     try {
       // @ts-ignore - session.accessToken is injected via callbacks
       const token = session?.accessToken as string | undefined;
-      const files = await fetchGithubRepo(githubUrl, token);
-      if (files.length === 0) {
+      const result = await fetchGithubRepo(githubUrl, token);
+      if (!result.success) {
+        setError(result.error || 'Failed to load repository.');
+      } else if (!result.data || result.data.length === 0) {
         setError('No markdown files found in the repository.');
       } else {
-        loadFiles(files);
+        loadFiles(result.data);
       }
     } catch (e: any) {
-      if (e.message.includes('please sign in first')) {
-        setError(e.message);
-      } else {
-        setError(e.message || 'Failed to load repository.');
-      }
+      setError('An unexpected response was received from the server.');
     } finally {
       setIsLoadingGit(false);
     }

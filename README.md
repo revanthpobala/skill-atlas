@@ -1,6 +1,12 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/revanthpobala/skill-atlas/main/public/logo.svg" alt="Skill Atlas Logo" width="120" />
   <h1>Skill Atlas Workbench</h1>
+  <a href="https://www.npmjs.com/package/agentic-skill-validator">
+    <img src="https://img.shields.io/npm/v/agentic-skill-validator?style=flat&logo=npm&color=cb3837" alt="NPM Version" />
+  </a>
+  <a href="https://www.npmjs.com/package/agentic-skill-validator">
+    <img src="https://img.shields.io/npm/dt/agentic-skill-validator?style=flat&logo=npm&color=cb3837" alt="NPM Downloads" />
+  </a>
 </div>
 
 **Launch Application:**

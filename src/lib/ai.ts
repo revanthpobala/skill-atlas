@@ -44,7 +44,7 @@ export async function fetchAIChat(
 
 async function _runAI(provider: string, store: any, messages: any[], onChunk: (text: string) => void) {
   if (provider === 'openai') {
-    if (!store.openaiKey) throw new Error('OpenAI API Key is missing. Please configure it in settings.');
+    if (!store.openaiKey) throw new Error('LLM key is not set, please set it');
     
     // Clean up base URL to prevent double slashes
     const baseUrl = store.openaiBaseUrl.replace(/\/+$/, '');
@@ -104,7 +104,7 @@ async function _runAI(provider: string, store: any, messages: any[], onChunk: (t
       }
     }
   } else if (provider === 'anthropic') {
-    if (!store.anthropicKey) throw new Error('Anthropic API Key is missing. Please configure it in settings.');
+    if (!store.anthropicKey) throw new Error('LLM key is not set, please set it');
 
     const baseUrl = store.anthropicBaseUrl.replace(/\/+$/, '');
     const targetUrl = `${baseUrl}/v1/messages`;
@@ -164,7 +164,7 @@ async function _runAI(provider: string, store: any, messages: any[], onChunk: (t
       }
     }
   } else if (provider === 'gemini') {
-    if (!store.geminiKey) throw new Error('Gemini API Key is missing. Please configure it in settings.');
+    if (!store.geminiKey) throw new Error('LLM key is not set, please set it');
 
     const baseUrl = store.geminiBaseUrl.replace(/\/+$/, '');
     const targetUrl = `${baseUrl}/v1beta/models/${store.geminiModel}:streamGenerateContent?alt=sse`;

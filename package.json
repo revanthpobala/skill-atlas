@@ -1,7 +1,17 @@
 {
   "name": "agentic-skill-validator",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": false,
+  "keywords": [
+    "ai",
+    "agentic",
+    "skills",
+    "validator",
+    "markdown",
+    "llm",
+    "agents",
+    "cli"
+  ],
   "files": [
     "bin/cli.js",
     "README.md"
